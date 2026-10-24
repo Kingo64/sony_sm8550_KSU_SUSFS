@@ -8,15 +8,15 @@ on:
         required: true
         default: true
         type: boolean
-      enable_kpm:
-        description: 'Enable KPM (Kernel Patch Module)'
-        required: true
-        default: true
-        type: boolean
       enable_zram:
         description: 'Enable ZRAM optimizations (LZ4KD)'
         required: true
         default: true
+        type: boolean
+      enable_kpm:
+        description: 'Enable KPM (Kernel Patch Module)'
+        required: true
+        default: false
         type: boolean
       enable_release:
         description: 'Release on successful build'
@@ -200,42 +200,6 @@ jobs:
           fi
 
           echo "" >> error-log-${{ matrix.device }}.txt
-
-      # - name: Upgrade LZ4 to version 1.10.0 (Official Method)
-      #   if: ${{ github.event.inputs.enable_zram == 'true' }}
-      #   working-directory: kernel
-      #   run: |
-      #     echo "--- LZ4 1.10.0 Upgrade (Official Logic) ---" | tee -a ../error-log-${{ matrix.device }}.txt
-
-      #     # 1. Clean old files
-      #     rm -f lib/lz4/lz4_compress.c lib/lz4/lz4_decompress.c lib/lz4/lz4defs.h lib/lz4/lz4hc_compress.c
-      #     echo "Cleaned old LZ4 files" | tee -a ../error-log-${{ matrix.device }}.txt
-
-      #     # 2. Copy new files
-      #     cp -r ../zzh_patches/zram/lz4/* ./lib/lz4/ 2>&1 | tee -a ../error-log-${{ matrix.device }}.txt
-      #     cp -r ../zzh_patches/zram/include/linux/* ./include/linux/ 2>&1 | tee -a ../error-log-${{ matrix.device }}.txt
-
-      #     # 3. Apply Patch
-      #     if [ -f "../zzh_patches/zram/${{ env.KERNEL_VERSION }}/lz4_1.10.0.patch" ]; then
-      #       cp ../zzh_patches/zram/${{ env.KERNEL_VERSION }}/lz4_1.10.0.patch ./
-      #       echo "Applying LZ4 1.10.0 patch..." | tee -a ../error-log-${{ matrix.device }}.txt
-      #       if patch -p1 -F 3 --fuzz=5 < lz4_1.10.0.patch 2>&1 | tee -a ../error-log-${{ matrix.device }}.txt; then
-      #         echo "✓ LZ4 1.10.0 patch applied successfully" | tee -a ../error-log-${{ matrix.device }}.txt
-      #       else
-      #         echo "⚠ LZ4 1.10.0 patch had issues (continuing)" | tee -a ../error-log-${{ matrix.device }}.txt
-      #       fi
-      #     else
-      #       echo "⚠ LZ4 1.10.0 patch not found for kernel ${{ env.KERNEL_VERSION }}" | tee -a ../error-log-${{ matrix.device }}.txt
-      #     fi
-
-      #     # 4. F2FS IOSTAT Fix
-      #     if [ -f "fs/f2fs/Makefile" ]; then
-      #         if ! grep -qF "f2fs-\$(CONFIG_F2FS_IOSTAT) += iostat.o" "fs/f2fs/Makefile"; then
-      #             echo "f2fs-\$(CONFIG_F2FS_IOSTAT) += iostat.o" >> "fs/f2fs/Makefile"
-      #             echo "✓ Added F2FS iostat configuration" | tee -a ../error-log-${{ matrix.device }}.txt
-      #         fi
-      #     fi
-      #     echo "" >> ../error-log-${{ matrix.device }}.txt
 
       - name: Add KernelSU variant
         working-directory: kernel
