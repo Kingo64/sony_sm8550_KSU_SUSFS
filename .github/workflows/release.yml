@@ -301,11 +301,7 @@ jobs:
         if: ${{ github.event.inputs.enable_susfs == 'true' }}
         working-directory: kernel
         run: |
-          find . -name Kconfig | sort
-          if grep -q "config KSU_SUSFS_PRIORITY_UID_FILTER" Kconfig; then
-            echo "Priority UID Filter Kconfig already exists"
-          else
-            echo "Applying Priority UID Filter Kconfig fix"
+          if ! grep -q "config KSU_SUSFS_PRIORITY_UID_FILTER" KernelSU/kernel/Kconfig; then
             patch -p1 < ../build-configs/patches/fix_priority_uid_filter_kconfig.patch
           fi
 
