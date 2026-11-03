@@ -296,9 +296,6 @@ jobs:
           patch -p1 --fuzz=3 -f < 50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch 2>&1 | tee -a ../error-log-${{ matrix.device }}.txt
           echo "ℹ Main SUSFS patch applied (-f); rejected hunks are handled by Sony fixup" | tee -a ../error-log-${{ matrix.device }}.txt
           echo "" >> ../error-log-${{ matrix.device }}.txt
-          
-          grep -R "config KSU_SUSFS_PRIORITY_UID_FILTER" .
-          grep -R "config KSU_SUSFS_SUS_MAP" .
 
       - name: Fix missing Priority UID Filter Kconfig
         if: ${{ github.event.inputs.enable_susfs == 'true' }}
