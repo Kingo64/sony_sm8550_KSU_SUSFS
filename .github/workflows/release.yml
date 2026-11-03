@@ -447,6 +447,24 @@ jobs:
           sed -i "s/printf '%s' -dirty/printf '%s' ''/" scripts/setlocalversion
           echo "✓ Kernel version: -${LOCALVERSION}" | tee -a ../error-log-${{ matrix.device }}.txt
           echo "" >> ../error-log-${{ matrix.device }}.txt
+      
+      - name: Debug priority UID filter
+        working-directory: kernel
+        run: |
+          echo "===== CONFIG ====="
+          grep "CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER" out/.config || true
+      
+          echo ""
+          echo "===== HEADER ====="
+          sed -n '235,255p' include/linux/susfs.h
+      
+          echo ""
+          echo "===== CALLER ====="
+          sed -n '1,60p' drivers/kernelsu/manager/pkg_observer.c
+      
+          echo ""
+          echo "===== CALLER 2 ====="
+          sed -n '450,500p' drivers/kernelsu/supercall/dispatch.c
 
       - name: Configure git for clean build
         working-directory: kernel
