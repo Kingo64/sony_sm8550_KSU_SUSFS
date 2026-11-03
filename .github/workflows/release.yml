@@ -298,14 +298,25 @@ jobs:
           echo "" >> ../error-log-${{ matrix.device }}.txt
 
       - name: Verify SUSFS symbols
+        if: ${{ github.event.inputs.enable_susfs == 'true' }}
         working-directory: kernel
         run: |
-          echo "Searching for SUSFS functions..."
+          echo "===== SUSFS HEADER ====="
+          grep -n "susfs_set_priority_uid_filter" include/linux/susfs.h || true
+          grep -n "susfs_parse_priority_app_strings" include/linux/susfs.h || true
       
-          grep -R "susfs_parse_priority_app_strings" . || true
-          grep -R "susfs_set_priority_uid_filter" . || true
+          echo ""
+          echo "===== KSU CALLERS ====="
+          grep -R -n "susfs_set_priority_uid_filter" drivers/kernelsu || true
+          grep -R -n "susfs_parse_priority_app_strings" drivers/kernelsu || true
       
-          find . -name "*.rej" -print
+          echo ""
+          echo "===== KSU INCLUDES ====="
+          grep -R -n "linux/susfs.h" drivers/kernelsu || true
+      
+          echo ""
+          echo "===== CONFIG ====="
+          grep "CONFIG_KSU_SUSFS" .config || true
 
       # - name: Apply Sony SUSFS fixup
       #   if: ${{ github.event.inputs.enable_susfs == 'true' }}
@@ -433,7 +444,7 @@ jobs:
           sed -i "s|CONFIG_LOCALVERSION=\".*\"|CONFIG_LOCALVERSION=\"-${LOCALVERSION}\"|" "$DEFCONFIG"
           # Suppress -dirty suffix from setlocalversion (keep valid shell syntax)
           sed -i "s/printf '%s' -dirty/printf '%s' ''/" scripts/setlocalversion
-          echo "✓ Kernel version: -${FEATURES}" | tee -a ../error-log-${{ matrix.device }}.txt
+          echo "✓ Kernel version: -${LOCALVERSION}" | tee -a ../error-log-${{ matrix.device }}.txt
           echo "" >> ../error-log-${{ matrix.device }}.txt
 
       - name: Configure git for clean build
