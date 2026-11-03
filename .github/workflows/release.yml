@@ -485,11 +485,6 @@ jobs:
 
           # Generate defconfig and prepare headers (flask.h etc) before full parallel build
           make ${{ env.MAKE_ARGS }} ${{ matrix.device }}_defconfig 2>&1 | tee build.log
-
-          echo "===== GENERATED CONFIG ====="
-          grep "CONFIG_KSU_SUSFS" out/.config || true
-          grep -R "config KSU_SUSFS_PRIORITY_UID_FILTER" .
-
           make ${{ env.MAKE_ARGS }} prepare 2>&1 | tee -a build.log
 
           if make ${{ env.MAKE_ARGS }} all 2>&1 | tee -a build.log; then
