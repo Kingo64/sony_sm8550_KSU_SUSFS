@@ -177,7 +177,11 @@ jobs:
           SUSFS_BRANCH="gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}"
           echo "Using SUSFS branch: $SUSFS_BRANCH" | tee -a error-log-${{ matrix.device }}.txt
 
+          if ! git clone --depth=1 https://github.com/ShirkNeko/susfs4ksu.git -b "$SUSFS_BRANCH" 2>&1 | tee -a error-log-${{ matrix.device }}.txt; then
+            echo "ShirkNeko susfs4ksu missing branch $SUSFS_BRANCH, falling back to simonpunk" | tee -a error-log-${{ matrix.device }}.txt
+            rm -rf susfs4ksu
           git clone --depth=1 https://gitlab.com/simonpunk/susfs4ksu.git -b "$SUSFS_BRANCH" 2>&1 | tee -a error-log-${{ matrix.device }}.txt
+          fi
 
           git clone --depth=1 https://github.com/WildKernels/kernel_patches.git 2>&1 | tee -a error-log-${{ matrix.device }}.txt &
 
@@ -292,27 +296,9 @@ jobs:
           patch -p1 --fuzz=3 -f < 50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch 2>&1 | tee -a ../error-log-${{ matrix.device }}.txt
           echo "ℹ Main SUSFS patch applied (-f); rejected hunks are handled by Sony fixup" | tee -a ../error-log-${{ matrix.device }}.txt
           echo "" >> ../error-log-${{ matrix.device }}.txt
-
-      - name: Verify SUSFS symbols
-        if: ${{ github.event.inputs.enable_susfs == 'true' }}
-        working-directory: kernel
-        run: |
-          echo "===== SUSFS HEADER ====="
-          grep -n "susfs_set_priority_uid_filter" include/linux/susfs.h || true
-          grep -n "susfs_parse_priority_app_strings" include/linux/susfs.h || true
-      
-          echo ""
-          echo "===== KSU CALLERS ====="
-          grep -R -n "susfs_set_priority_uid_filter" drivers/kernelsu || true
-          grep -R -n "susfs_parse_priority_app_strings" drivers/kernelsu || true
-      
-          echo ""
-          echo "===== KSU INCLUDES ====="
-          grep -R -n "linux/susfs.h" drivers/kernelsu || true
-      
-          echo ""
-          echo "===== CONFIG ====="
-          grep "CONFIG_KSU_SUSFS" .config || true
+          
+          grep -R "config KSU_SUSFS_PRIORITY_UID_FILTER" .
+          grep -R "config KSU_SUSFS_SUS_MAP" .
 
       # - name: Apply Sony SUSFS fixup
       #   if: ${{ github.event.inputs.enable_susfs == 'true' }}
@@ -399,7 +385,6 @@ jobs:
             echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> "$DEFCONFIG"
             echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> "$DEFCONFIG"
             echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> "$DEFCONFIG"
-            echo "CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER=y" >> "$DEFCONFIG"
           fi
 
           if [ "${{ github.event.inputs.enable_zram }}" == "true" ]; then
@@ -434,34 +419,15 @@ jobs:
         run: |
           echo "--- Kernel Version String ---" | tee -a ../error-log-${{ matrix.device }}.txt
           DEFCONFIG="arch/arm64/configs/${{ matrix.device }}_defconfig"
-          LOCALVERSION="gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}"
 
           # Set version via defconfig - disable auto and set full string
           sed -i 's/CONFIG_LOCALVERSION_AUTO=y/CONFIG_LOCALVERSION_AUTO=n/' "$DEFCONFIG"
-          sed -i "s|CONFIG_LOCALVERSION=\".*\"|CONFIG_LOCALVERSION=\"-${LOCALVERSION}\"|" "$DEFCONFIG"
+
           # Suppress -dirty suffix from setlocalversion (keep valid shell syntax)
           sed -i "s/printf '%s' -dirty/printf '%s' ''/" scripts/setlocalversion
-          echo "✓ Kernel version: -${LOCALVERSION}" | tee -a ../error-log-${{ matrix.device }}.txt
+          echo "✓ Kernel version: -${FEATURES}" | tee -a ../error-log-${{ matrix.device }}.txt
           echo "" >> ../error-log-${{ matrix.device }}.txt
       
-      - name: Debug priority UID filter
-        working-directory: kernel
-        run: |
-          echo "===== CONFIG ====="
-          grep "CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER" "arch/arm64/configs/${{ matrix.device }}_defconfig" || true
-      
-          echo ""
-          echo "===== HEADER ====="
-          sed -n '235,255p' include/linux/susfs.h
-      
-          echo ""
-          echo "===== CALLER ====="
-          sed -n '1,60p' drivers/kernelsu/manager/pkg_observer.c
-      
-          echo ""
-          echo "===== CALLER 2 ====="
-          sed -n '450,500p' drivers/kernelsu/supercall/dispatch.c
-
       - name: Configure git for clean build
         working-directory: kernel
         run: |
@@ -516,7 +482,6 @@ jobs:
           make ${{ env.MAKE_ARGS }} ${{ matrix.device }}_defconfig 2>&1 | tee build.log
 
           echo "===== GENERATED CONFIG ====="
-          grep "CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER" out/.config || true
           grep "CONFIG_KSU_SUSFS" out/.config || true
           grep -R "config KSU_SUSFS_PRIORITY_UID_FILTER" .
 
