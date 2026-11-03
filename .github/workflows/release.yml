@@ -300,6 +300,17 @@ jobs:
           grep -R "config KSU_SUSFS_PRIORITY_UID_FILTER" .
           grep -R "config KSU_SUSFS_SUS_MAP" .
 
+      - name: Fix missing Priority UID Filter Kconfig
+        if: ${{ github.event.inputs.enable_susfs == 'true' }}
+        working-directory: kernel
+        run: |
+          if grep -q "config KSU_SUSFS_PRIORITY_UID_FILTER" kernel/Kconfig; then
+            echo "Priority UID Filter Kconfig already exists"
+          else
+            echo "Applying Priority UID Filter Kconfig fix"
+            patch -p1 < ../patches/fix_priority_uid_filter_kconfig.patch
+          fi
+
       # - name: Apply Sony SUSFS fixup
       #   if: ${{ github.event.inputs.enable_susfs == 'true' }}
       #   working-directory: kernel
