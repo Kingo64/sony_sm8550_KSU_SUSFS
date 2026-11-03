@@ -177,11 +177,7 @@ jobs:
           SUSFS_BRANCH="gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}"
           echo "Using SUSFS branch: $SUSFS_BRANCH" | tee -a error-log-${{ matrix.device }}.txt
 
-          if ! git clone --depth=1 https://github.com/ShirkNeko/susfs4ksu.git -b "$SUSFS_BRANCH" 2>&1 | tee -a error-log-${{ matrix.device }}.txt; then
-            echo "ShirkNeko susfs4ksu missing branch $SUSFS_BRANCH, falling back to simonpunk" | tee -a error-log-${{ matrix.device }}.txt
-            rm -rf susfs4ksu
-            git clone --depth=1 https://gitlab.com/simonpunk/susfs4ksu.git -b "$SUSFS_BRANCH" 2>&1 | tee -a error-log-${{ matrix.device }}.txt
-          fi
+          git clone --depth=1 https://gitlab.com/simonpunk/susfs4ksu.git -b "$SUSFS_BRANCH" 2>&1 | tee -a error-log-${{ matrix.device }}.txt
 
           git clone --depth=1 https://github.com/WildKernels/kernel_patches.git 2>&1 | tee -a error-log-${{ matrix.device }}.txt &
 
