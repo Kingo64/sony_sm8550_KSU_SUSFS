@@ -301,11 +301,12 @@ jobs:
         if: ${{ github.event.inputs.enable_susfs == 'true' }}
         working-directory: kernel
         run: |
-          if grep -q "config KSU_SUSFS_PRIORITY_UID_FILTER" kernel/Kconfig; then
+          find . -name Kconfig | sort
+          if grep -q "config KSU_SUSFS_PRIORITY_UID_FILTER" Kconfig; then
             echo "Priority UID Filter Kconfig already exists"
           else
             echo "Applying Priority UID Filter Kconfig fix"
-            patch -p1 < ../patches/fix_priority_uid_filter_kconfig.patch
+            patch -p1 < ../build-configs/patches/fix_priority_uid_filter_kconfig.patch
           fi
 
       # - name: Apply Sony SUSFS fixup
