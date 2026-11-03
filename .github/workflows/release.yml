@@ -32,6 +32,7 @@ on:
 env:
   AOSP_TOOLCHAIN_BRANCH: android17
   AOSP_CLANG_VERSION: r596125
+  KERNEL_LOCALVERSION: android13-5.15-gdb39b3851f98
   ANDROID_VERSION: android13
   KERNEL_VERSION: 5.15
 
@@ -292,9 +293,19 @@ jobs:
 
           # Apply main SUSFS patch (-f: continue if Sony-specific header hunks fail)
           echo "Applying main SUSFS patch..." | tee -a ../error-log-${{ matrix.device }}.txt
-          patch -p1 --fuzz=3 -f < 50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch 2>&1 | tee -a ../error-log-${{ matrix.device }}.txt || true
+          patch -p1 --fuzz=3 -f < 50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch 2>&1 | tee -a ../error-log-${{ matrix.device }}.txt
           echo "ℹ Main SUSFS patch applied (-f); rejected hunks are handled by Sony fixup" | tee -a ../error-log-${{ matrix.device }}.txt
           echo "" >> ../error-log-${{ matrix.device }}.txt
+
+      - name: Verify SUSFS symbols
+        working-directory: kernel
+        run: |
+          echo "Searching for SUSFS functions..."
+      
+          grep -R "susfs_parse_priority_app_strings" . || true
+          grep -R "susfs_set_priority_uid_filter" . || true
+      
+          find . -name "*.rej" -print
 
       # - name: Apply Sony SUSFS fixup
       #   if: ${{ github.event.inputs.enable_susfs == 'true' }}
@@ -415,10 +426,11 @@ jobs:
         run: |
           echo "--- Kernel Version String ---" | tee -a ../error-log-${{ matrix.device }}.txt
           DEFCONFIG="arch/arm64/configs/${{ matrix.device }}_defconfig"
+          LOCALVERSION="gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}"
 
           # Set version via defconfig - disable auto and set full string
           sed -i 's/CONFIG_LOCALVERSION_AUTO=y/CONFIG_LOCALVERSION_AUTO=n/' "$DEFCONFIG"
-
+          sed -i "s|CONFIG_LOCALVERSION=\".*\"|CONFIG_LOCALVERSION=\"-${LOCALVERSION}\"|" "$DEFCONFIG"
           # Suppress -dirty suffix from setlocalversion (keep valid shell syntax)
           sed -i "s/printf '%s' -dirty/printf '%s' ''/" scripts/setlocalversion
           echo "✓ Kernel version: -${FEATURES}" | tee -a ../error-log-${{ matrix.device }}.txt
@@ -731,7 +743,7 @@ jobs:
           - **KernelSU Variant**: ${VARIANT}
           - **Devices**: Sony Xperia 1 V (pdx234)
           - **Base Kernel**: 5.15
-          - **Android Version**: 16 (LineageOS 24)
+          - **Android Version**: 17 (LineageOS 24)
           - **Clang Version**: ${{ env.AOSP_CLANG_VERSION }}
           - **Release Version**: ${{ github.event.inputs.release_version }}
           - **Build Date**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
